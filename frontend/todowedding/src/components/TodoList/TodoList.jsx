@@ -24,8 +24,19 @@ const style = {
 const TodoList = () => {
     const [todos, setTodos] = useState([]);
     const [input, setInput] = useState("");
-    const [isChecked, setIsChecked] = useState("");
+    const [isChecked, setIsChecked] = useState('N'); // 체크 여부 상태 
+   
+    // 추가코드 [09-08]
+    const [inProgressCnt , setInprogressCnt] = useState(0) // 진행 항목 개수
+    const [completeCnt , setCompleteCnt] = useState(0) // 완료된 항목 갯수 
+
     const memberSeq = 123456789;
+
+    
+  // 완료 - 미완료 개수 조회
+  useEffect(() =>{
+     fetchDataAndCount();
+  }, [])
 
     // GET : axios.get(url)
     // POST : axios.post(url, data)
@@ -68,29 +79,55 @@ const TodoList = () => {
     };
 
     // 2.전체 투두리스트 조회
-    useEffect(() => {
-        const fetchDataAndCout = async () => {
-            await fetchData();
+    // useEffect(() => {
+    //     const fetchDataAndCout = async () => {
+    //         await fetchData();
+    //         cntTodoList();  //수정
+    //     }
+
+    //     fetchDataAndCout();
+    // }, []);
+        const fetchDataAndCout = () => {
+            fetchData();
             cntTodoList();  //수정
         }
 
-        fetchDataAndCout();
-    }, []);
+        useEffect(() => {
+            fetchDataAndCout();
+        }, []);
 
     // 3. 투두리스트 체크했을 때 실행되는 메서드 ---> (현재 Todo.jsx에 넣어둠)
-    const toggleComplete = async (todo) => {
-        console.log("check_실행", todo);
+    const toggleComplete = async (todo, check) => {
+        console.log("wqrqwrwqr")
+        console.log(check)
+        //const updatedTodo = { ...todo, todolistCompleted: !todo.todolistCompleted }; // 완료 여부 반전
+        const a = check == 'N' ? 'Y' : 'N'
+
         const data = {
-            todolistCompleted: isChecked,
-            todolistSeq: todo.todolistSeq,
-            memberSeq: todo.memberSeq,
+            todolistCompleted: a, // Y,N이냐 여부 
+            todolistSeq: todo, // 투두번호
+            memberSeq: memberSeq, // 멤버번호 
         };
+   
         try {
             await axios.put(`http://localhost:8085/todolist/check`, data); //`http://localhost:8085/todolist/${memberSeq}/${todo.todolistSeq}`, data
             console.log("성공 checked ");
+            fetchDataAndCout()
+            
+            let b= todos.filter((aa)=>aa.todolist_completed=='Y')
+                console.log(b.length)
         } catch (err) {
             console.error("Error checked: ", err);
         }
+
+        
+        // try {
+        //     await axios.put(`http://localhost:8085/todolist/${todo.todolistSeq}`, updatedTodo);
+        //     console.log("성공 checked");
+        //     fetchDataAndCount(); // 투두리스트와 개수 다시 조회
+        // } catch (err) {
+        //     console.error("Error checked: ", err);
+        // }
     };
 
     
@@ -145,6 +182,39 @@ const TodoList = () => {
         }
     }
 
+
+
+
+
+  // 전체 투두리스트 조회 및 진행중인 항목과 완료된 갯수 cnt 
+
+  const fetchDataAndCount = async () => {
+     try {
+        const response = await axios.get(`http://localhost:8085/todolist/${memberSeq}`)
+        console.log("findallTodolist 조회 res :", response.data);
+        setTodos(response.data)
+
+        let inProgressCount = 0;
+        let completedCount = 0;
+
+         for (const todo of response.data) {
+            if (todo.todolist_completed === "N") {
+                inProgressCount++;
+            } else if (todo.todolist_completed === "Y") {
+                completedCount++;
+            }
+         }
+
+         setInprogressCnt(inProgressCount);
+         setCompletedCnt(completedCount);
+
+     } catch (error) {
+        console.error("Error" , error);
+     }
+  }
+
+
+
     return (
         //html
         <div>
@@ -164,10 +234,8 @@ const TodoList = () => {
                 {/* 투두리스트 조회 (전체_진행_완료)  */}
                 <div style={{ display: "flex", justifyContent: "center" }}>
                 {todos.length < 1 ? null : <span className={style.count}> {`전체 : ${todos.length}`}</span>}
-                {todos.length < 1 ? null : <span className={style.count}> {`진행 : ${todos.length}`}</span>}
-                {/* {todos.length < 1 ? null : <span className={style.count}> {`완료 : ${todos.length}`}</span>} */}
+                {todos.length < 1 ? null : <span className={style.count}> {`진행 : ${inProgressCnt}`}</span>}
                 {todos.length < 1 ? null : <span className={style.count}> {`완료 : ${completedCnt}`}</span>}
-               
                 </div>
 
                 <h3 className={style.heading}>Todo List</h3>
